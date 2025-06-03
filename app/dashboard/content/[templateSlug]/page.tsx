@@ -20,9 +20,11 @@ import { UpdateCreditContext } from '@/app/(context)/UpdateCreditContext';
 
 interface PageProps {
     params: {
-        "templateSlug": string;
+        templateSlug: string;  // Remove quotes around property name
     };
+    searchParams: object;     // Add searchParams as required by Next.js
 }
+
 
 export default function CreateNewContent({ params }: PageProps) {
     const [loading, setLoading] = useState(false);
