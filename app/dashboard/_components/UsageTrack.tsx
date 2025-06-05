@@ -15,29 +15,35 @@ export default function UsageTrack() {
     const { user } = useUser()
     const { totalUsage, setTotalUsage } = useContext(TotalUsageContext)
     const { userSubscription, setUserSubscription } = useContext(UserSubscriptionContext)
-    const {updateCreditUsage, setUpdateCreditUsage}=useContext(UpdateCreditContext  )
+    const { updateCreditUsage, setUpdateCreditUsage } = useContext(UpdateCreditContext)
     const [maxWords, setMaxWords] = useState(1000)
     const getData = async () => {
-        {/** @ts-ignore */ }
-        const result: HistoryElem[] = await db.select().from(AIOutput).where(eq(AIOutput.createdBy, user?.primaryEmailAddress?.emailAddress))
-        getTotalUsage(result)
+        try {
+            if (!user?.primaryEmailAddress?.emailAddress) return;
+            const result: HistoryElem[] = await db.select().from(AIOutput).where(eq(AIOutput.createdBy, user.primaryEmailAddress.emailAddress));
+            getTotalUsage(result);
+        } catch (error) {
+            console.error('Error fetching data:', error);
+        }
     }
 
-const isUserSubscribe = async () => {
-    const userEmail = user?.primaryEmailAddress?.emailAddress;
-    if (!userEmail) {
-        return; // Exit early if no email
-    }
-    
-    const result = await db.select()
-        .from(UserSubscription)
-        .where(eq(UserSubscription.email, userEmail));
+    const isUserSubscribe = async () => {
+        try {
+            const userEmail = user?.primaryEmailAddress?.emailAddress;
+            if (!userEmail) return;
 
-    if (result) {
-        setUserSubscription(true);
-        setMaxWords(10000);
-    }
-};
+            const result = await db.select()
+                .from(UserSubscription)
+                .where(eq(UserSubscription.email, userEmail));
+
+            if (result.length > 0) {
+                setUserSubscription(true);
+                setMaxWords(10000);
+            }
+        } catch (error) {
+            console.error('Error checking subscription:', error);
+        }
+    };
 
     const getTotalUsage = (result: HistoryElem[]) => {
         let total: number = 0;
@@ -47,17 +53,18 @@ const isUserSubscribe = async () => {
             }
         });
         setTotalUsage(total);
-        console.log(total);
     }
 
     useEffect(() => {
-        user && getData()
-        user&&isUserSubscribe()
-    }, [user])
+        if (!user) return;
+        getData();
+        isUserSubscribe();
+    }, [user]);
 
     useEffect(() => {
-        user&&getData()
-    }, [updateCreditUsage&&user])
+        if (!user || !updateCreditUsage) return;
+        getData();
+    }, [updateCreditUsage, user]);
 
     return (
         <div className='m-5'>

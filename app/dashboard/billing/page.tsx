@@ -1,5 +1,5 @@
 "use client"
-import React, { useContext, useState } from 'react'
+import React, { useContext, useEffect, useState } from 'react'
 import { Button } from "@/components/ui/button"
 import CircleCheckIcon from "../_components/CircleCheckIcon"
 import axios from "axios"
@@ -14,6 +14,16 @@ export default function Billing() {
   const { user } = useUser()
   const [loading, setLoading] = useState<boolean>(false)
   const { userSubscription, setUserSubscription } = useContext(UserSubscriptionContext)
+  useEffect(() => {
+    const script = document.createElement('script')
+    script.src = 'https://checkout.razorpay.com/v1/checkout.js'
+    document.head.appendChild(script)
+
+    return () => {
+      document.head.removeChild(script)
+    }
+  }, [])
+  
   const CreateSubscription = async () => {
     try {
       setLoading(true)
@@ -46,21 +56,32 @@ export default function Billing() {
   }
 
   const saveSubscription = async (paymentId: string) => {
-    const result = await db.insert(UserSubscription).values({
-      email: user?.primaryEmailAddress?.emailAddress,
-      userName: user?.fullName,
-      active: true,
-      paymentId: paymentId,
-      joinDate: moment().format("DD/MM/YYYY")
-    })
-    console.log(result)
-    if (result) {
+    try {
+      const result = await db.insert(UserSubscription).values({
+        email: user?.primaryEmailAddress?.emailAddress,
+        userName: user?.fullName,
+        active: true,
+        paymentId: paymentId,
+        joinDate: moment().format("DD/MM/YYYY")
+      });
+      
+      if (result) {
+        setUserSubscription({
+          email: user?.primaryEmailAddress?.emailAddress!,
+          userName: user?.fullName!,
+          active: true,
+          paymentId: paymentId,
+          joinDate: moment().format("DD/MM/YYYY")
+        });
+      }
       window.location.reload()
+    } catch (error) {
+      console.error("Failed to save subscription:", error);
+      throw error;
     }
   }
   return (
     <div className="container mx-auto px-4 py-8">
-      <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
       <div className="grid gap-8 md:grid-cols-2 xl:grid-cols-3 max-w-6xl mx-auto">
         <div className="flex flex-col rounded-xl border-2 bg-white relative">
           <div className="grid gap-6 p-8">
