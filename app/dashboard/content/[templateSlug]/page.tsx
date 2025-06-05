@@ -18,15 +18,7 @@ import { useRouter } from 'next/navigation';
 import { UserSubscriptionContext } from '@/app/(context)/UserSubscriptionContext';
 import { UpdateCreditContext } from '@/app/(context)/UpdateCreditContext';
 
-interface PageProps {
-    params: {
-        templateSlug: string;  // Remove quotes around property name
-    };
-    searchParams: object;     // Add searchParams as required by Next.js
-}
-
-
-export default function CreateNewContent({ params }: PageProps) {
+export default function CreateNewContent({ params }: {params: Promise<{ templateSlug: string }>}) {
     const [loading, setLoading] = useState(false);
     const [aiOutput, setAIOutput] = useState("");
     const { user } = useUser();
@@ -35,9 +27,10 @@ export default function CreateNewContent({ params }: PageProps) {
     const {updateCreditUsage, setUpdateCreditUsage}=useContext(UpdateCreditContext)
     const router = useRouter()
 
-    const selectedTemplate = Templates.find((tool) =>
-        tool.slug === params.templateSlug
-    );
+    const selectedTemplate = Templates.find(async(tool) =>{
+        const awaitedParams = await params
+        tool.slug === awaitedParams.templateSlug
+});
 
     useEffect(() => {
         console.log(selectedTemplate);

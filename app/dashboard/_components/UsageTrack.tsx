@@ -23,13 +23,21 @@ export default function UsageTrack() {
         getTotalUsage(result)
     }
 
-    const isUserSubscribe = async () => {
-        const result = await db.select().from(UserSubscription).where(eq(UserSubscription.email, user?.primaryEmailAddress?.emailAddress))
-        if (result) {
-            setUserSubscription(true)
-            setMaxWords(10000)
-        }
+const isUserSubscribe = async () => {
+    const userEmail = user?.primaryEmailAddress?.emailAddress;
+    if (!userEmail) {
+        return; // Exit early if no email
     }
+    
+    const result = await db.select()
+        .from(UserSubscription)
+        .where(eq(UserSubscription.email, userEmail));
+
+    if (result) {
+        setUserSubscription(true);
+        setMaxWords(10000);
+    }
+};
 
     const getTotalUsage = (result: HistoryElem[]) => {
         let total: number = 0;
