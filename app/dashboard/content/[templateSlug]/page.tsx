@@ -7,7 +7,7 @@ import { Templates } from '@/app/(data)/Templates';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
-import { chatSession } from '@/utils/AIModel';
+import { DEFAULT_AI_MODEL, isAiModelId } from '@/utils/AIModel';
 import { useUser } from '@clerk/nextjs';
 import { Toaster } from '@/components/ui/sonner';
 import { toast } from "sonner";
@@ -21,20 +21,18 @@ import { UpdateCreditContext } from '@/app/(context)/UpdateCreditContext';
 export default function CreateNewContent({ params }: {params: Promise<{ templateSlug: string }>}) {
     const [loading, setLoading] = useState(false);
     const [aiOutput, setAIOutput] = useState("");
+    const [selectedTemplate, setSelectedTemplate] = useState<(typeof Templates)[number]>();
     const { user } = useUser();
     const { totalUsage, setTotalUsage } = useContext(TotalUsageContext)
     const { userSubscription, setUserSubscription } = useContext(UserSubscriptionContext)
     const {updateCreditUsage, setUpdateCreditUsage}=useContext(UpdateCreditContext)
     const router = useRouter()
 
-    const selectedTemplate = Templates.find(async(tool) =>{
-        const awaitedParams = await params
-        tool.slug === awaitedParams.templateSlug
-});
-
     useEffect(() => {
-        console.log(selectedTemplate);
-    }, [selectedTemplate]);
+        params.then(({ templateSlug }) => {
+            setSelectedTemplate(Templates.find((tool) => tool.slug === templateSlug));
+        });
+    }, [params]);
 
     /**
      * @param formData
@@ -49,8 +47,21 @@ export default function CreateNewContent({ params }: {params: Promise<{ template
             setLoading(true);
             const selectedPrompt = selectedTemplate?.aiPrompt;
             const finalAIPrompt = JSON.stringify(data) + "," + selectedPrompt;
-            const result = await chatSession.sendMessage(finalAIPrompt);
-            const aiResponseText = result.response.text();
+            const storedModel = window.localStorage.getItem("infinitext-ai-model");
+            const model = isAiModelId(storedModel) ? storedModel : DEFAULT_AI_MODEL;
+            const response = await fetch("/api/generate", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ prompt: finalAIPrompt, model }),
+            });
+            const result = await response.json() as { content?: string; model?: string; error?: string };
+            if (!response.ok || !result.content) {
+                throw new Error(result.error ?? "AI generation failed");
+            }
+            if (isAiModelId(result.model)) {
+                window.localStorage.setItem("infinitext-ai-model", result.model);
+            }
+            const aiResponseText = result.content;
 
             console.log(aiResponseText);
             setAIOutput(await aiResponseText);

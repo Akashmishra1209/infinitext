@@ -34,3 +34,15 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+## AI model configuration
+
+Content generation uses the selected model first and automatically falls back to the remaining configured models. Add these server-only variables to `.env.local`:
+
+```bash
+OPENROUTER_API_KEY=your_openrouter_key
+NVIDIA_API_KEY=your_nvidia_key
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+```
+
+Never use `NEXT_PUBLIC_` for an AI provider key. If a provider key has been shared publicly, revoke it and create a replacement before deploying.
