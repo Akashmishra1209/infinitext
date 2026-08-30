@@ -37,7 +37,7 @@ Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/bui
 
 ## AI model configuration
 
-Content generation uses the selected model first and automatically falls back to the remaining configured models. Add these server-only variables to `.env.local`:
+Content generation tries models in the order listed in `utils/AIModel.ts` and automatically falls back to the next configured model when one fails. No model preference is saved. Add these server-only variables to `.env.local`:
 
 ```bash
 OPENROUTER_API_KEY=your_openrouter_key

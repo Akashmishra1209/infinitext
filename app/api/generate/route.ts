@@ -1,5 +1,5 @@
 import { auth } from "@clerk/nextjs/server";
-import { AI_MODELS, DEFAULT_AI_MODEL, isAiModelId } from "@/utils/AIModel";
+import { AI_MODELS } from "@/utils/AIModel";
 
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
 const NVIDIA_URL = "https://integrate.api.nvidia.com/v1/chat/completions";
@@ -11,18 +11,13 @@ type ModelConfig = {
     key: string | undefined;
 };
 
-function getModelConfigs(selectedModel: string | undefined): ModelConfig[] {
-    const selected = isAiModelId(selectedModel) ? selectedModel : DEFAULT_AI_MODEL;
-    const configs = AI_MODELS.map((model) => ({
+function getModelConfigs(): ModelConfig[] {
+    return AI_MODELS.map((model) => ({
         id: model.id,
         provider: model.provider === "OpenRouter" ? "openrouter" as const : "nvidia" as const,
         url: model.provider === "OpenRouter" ? OPENROUTER_URL : NVIDIA_URL,
         key: model.provider === "OpenRouter" ? process.env.OPENROUTER_API_KEY : process.env.NVIDIA_API_KEY,
     }));
-    const selectedConfig = configs.find((config) => config.id === selected);
-    return selectedConfig
-        ? [selectedConfig, ...configs.filter((config) => config.id !== selected)]
-        : configs;
 }
 
 export async function POST(request: Request) {
@@ -31,12 +26,12 @@ export async function POST(request: Request) {
         return Response.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const body = await request.json() as { prompt?: string; model?: string };
+    const body = await request.json() as { prompt?: string };
     if (!body.prompt?.trim()) {
         return Response.json({ error: "A prompt is required" }, { status: 400 });
     }
 
-    for (const config of getModelConfigs(body.model)) {
+    for (const config of getModelConfigs()) {
         if (!config.key) continue;
 
         try {

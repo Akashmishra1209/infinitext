@@ -7,7 +7,6 @@ import { Templates } from '@/app/(data)/Templates';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
-import { DEFAULT_AI_MODEL, isAiModelId } from '@/utils/AIModel';
 import { useUser } from '@clerk/nextjs';
 import { Toaster } from '@/components/ui/sonner';
 import { toast } from "sonner";
@@ -47,19 +46,14 @@ export default function CreateNewContent({ params }: {params: Promise<{ template
             setLoading(true);
             const selectedPrompt = selectedTemplate?.aiPrompt;
             const finalAIPrompt = JSON.stringify(data) + "," + selectedPrompt;
-            const storedModel = window.localStorage.getItem("infinitext-ai-model");
-            const model = isAiModelId(storedModel) ? storedModel : DEFAULT_AI_MODEL;
             const response = await fetch("/api/generate", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ prompt: finalAIPrompt, model }),
+                body: JSON.stringify({ prompt: finalAIPrompt }),
             });
             const result = await response.json() as { content?: string; model?: string; error?: string };
             if (!response.ok || !result.content) {
                 throw new Error(result.error ?? "AI generation failed");
-            }
-            if (isAiModelId(result.model)) {
-                window.localStorage.setItem("infinitext-ai-model", result.model);
             }
             const aiResponseText = result.content;
 
