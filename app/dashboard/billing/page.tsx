@@ -10,13 +10,22 @@ import { useUser } from '@clerk/nextjs'
 import moment from 'moment'
 import { UserSubscriptionContext } from '@/app/(context)/UserSubscriptionContext'
 
+declare global {
+  interface Window {
+    Razorpay?: new (options: Record<string, unknown>) => { open: () => void }
+  }
+}
+
 export default function Billing() {
   const { user } = useUser()
   const [loading, setLoading] = useState<boolean>(false)
+  const [razorpayLoaded, setRazorpayLoaded] = useState(false)
   const { userSubscription, setUserSubscription } = useContext(UserSubscriptionContext)
   useEffect(() => {
     const script = document.createElement('script')
     script.src = 'https://checkout.razorpay.com/v1/checkout.js'
+    script.onload = () => setRazorpayLoaded(true)
+    script.onerror = () => console.error("Failed to load Razorpay Checkout")
     document.head.appendChild(script)
 
     return () => {
@@ -32,11 +41,19 @@ export default function Billing() {
       onPayment(response.data.id)
     } catch (error) {
       console.error("Subscription creation failed:", error);
+      const message = axios.isAxiosError(error)
+        ? error.response?.data?.error
+        : undefined;
+      if (message) console.error("Razorpay:", message);
       setLoading(false)
     }
   }
 
   const onPayment = (subId: string) => {
+    if (!window.Razorpay) {
+      throw new Error("Razorpay Checkout is still loading. Please try again.");
+    }
+
     const options = {
       "key": process.env.NEXT_PUBLIC_RAZORPAY_API_KEY,
       "subscription_id": subId,
@@ -50,7 +67,6 @@ export default function Billing() {
         setLoading(false)
       }
     }
-    // @ts-ignore
     const rzp = new window.Razorpay(options)
     rzp.open()
   }
@@ -152,7 +168,7 @@ export default function Billing() {
             </div>
           </div>
           <div className="mt-auto p-6 border-t">
-            <Button className="w-full py-2.5 cursor-pointer flex gap-2 items-center" variant={userSubscription?"secondary":"default"} disabled={loading || userSubscription} size="lg" onClick={() => CreateSubscription()}>
+            <Button className="w-full py-2.5 cursor-pointer flex gap-2 items-center" variant={userSubscription?"secondary":"default"} disabled={loading || userSubscription || !razorpayLoaded} size="lg" onClick={() => CreateSubscription()}>
               {loading && <Loader2 className="animate-spin" />}
               {userSubscription ? "Current Plan" : "Upgrade to Pro"}
             </Button>
